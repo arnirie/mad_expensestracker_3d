@@ -16,7 +16,7 @@ class _ExpensesEntryState extends State<ExpensesEntry> {
   TextEditingController descController = TextEditingController();
   TextEditingController amountController = TextEditingController();
 
-  String selectedDate = '';
+  DateTime? selectedDate;
   var date_format = DateFormat.yMd();
 
   void selectDate() async {
@@ -26,11 +26,62 @@ class _ExpensesEntryState extends State<ExpensesEntry> {
       firstDate: DateTime(DateTime.now().year, 1, 1),
       lastDate: DateTime.now(),
     ); //.then((value) => print(value))
-    selectedDate = date_format.format(date!);
+    selectedDate = date;
     setState(() {});
   }
 
-  // void addItem() {}
+  void insertItem() {
+    //validate input
+    var errorMessage = '';
+    if (descController.text == '') {
+      errorMessage = 'Description is required.';
+      showAlert(errorMessage);
+      return;
+    }
+    var amount = double.tryParse(amountController.text);
+    if (amount == null || amount <= 0) {
+      errorMessage = 'Amount should be greater than zero';
+      showAlert(errorMessage);
+      return;
+    }
+    if (selectedDate == null) {
+      errorMessage = 'Please select a date';
+      showAlert(errorMessage);
+      return;
+    }
+
+    //add list
+    widget.addItem(
+      ExpensesItem(
+          description: descController.text,
+          amount: amount ?? 0,
+          date: selectedDate!),
+    );
+    dismissEntry();
+  }
+
+  void showAlert(String errorMessage) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(errorMessage),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text('OK'),
+          )
+        ],
+      ),
+    );
+  }
+
+  void dismissEntry() {
+    // Navigator.pop(context);
+    Navigator.of(context).pop();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +101,9 @@ class _ExpensesEntryState extends State<ExpensesEntry> {
           const Gap(4),
           Row(
             children: [
-              Text(selectedDate != '' ? selectedDate : 'Date'),
+              Text(selectedDate != null
+                  ? DateFormat.yMd().format(selectedDate!)
+                  : 'Date'),
               IconButton(
                 onPressed: selectDate,
                 icon: Icon(Icons.calendar_month),
@@ -62,20 +115,14 @@ class _ExpensesEntryState extends State<ExpensesEntry> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
-                  onPressed: () {
-                    // Navigator.pop(context);
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Cancel')),
+                onPressed: dismissEntry,
+                child: const Text('Cancel'),
+              ),
               const Gap(4),
               ElevatedButton(
-                  onPressed: () {
-                    widget.addItem(ExpensesItem(
-                        description: descController.text,
-                        amount: double.parse(amountController.text),
-                        date: DateTime.now()));
-                  },
-                  child: const Text('ADD'))
+                onPressed: insertItem,
+                child: const Text('ADD'),
+              ),
             ],
           ),
         ],
